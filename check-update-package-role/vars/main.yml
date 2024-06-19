@@ -1,0 +1,3 @@
+---
+csv_file: "check_update_{{ ansible_date_time.date }}.csv"
+headers: Hostname,Packages Pending

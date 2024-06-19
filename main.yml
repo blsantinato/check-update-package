@@ -1,0 +1,9 @@
+---
+- name: Check Update for Linux Environment
+  hosts: cio_grp_cred_aix_server,cio_grp_cred_linux_server
+  become: true
+  gather_facts: true
+  ignore_unreachable: true
+  roles:
+    - role: check-update-package-role
+      when: ansible_system == 'AIX' or ansible_distribution == 'RedHat'

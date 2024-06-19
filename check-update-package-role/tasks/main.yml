@@ -1,0 +1,54 @@
+---
+- name: Check Update for Redhat 8
+  shell: dnf check-update |egrep -v "Red Hat Enterprise Linux 8|Updating Subscription Management repositories" |wc -l
+  register: checkupdate_linux
+  ignore_errors: true
+  when: ansible_distribution == 'RedHat'
+
+- name: "LOCAL - Create Local file on localhost(Control node)"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  ansible.builtin.file:
+    path: "{{ role_path }}/files/{{ csv_file }}"
+    state: touch
+    mode: '0755'
+
+- name: Create a Header on CSV
+  delegate_to: localhost
+  become: false
+  run_once: true
+  lineinfile:
+    dest: "{{ role_path }}/files/{{ csv_file }}"
+    line: "{{ headers }}"
+    mode: '0755'
+  
+- name: Populate a file with count packages pending to apply
+  delegate_to: localhost
+  become: false
+  ignore_errors: true
+  lineinfile:
+    dest: "{{ role_path }}/files/{{ csv_file }}"
+    line: "{{ inventory_hostname }},{{ checkupdate_linux.stdout }}"
+    mode: '0755'
+  when: ansible_distribution == 'RedHat'
+
+- name: Send report thru mail
+  run_once: true
+  delegate_to: localhost
+  become: false
+  mail:
+    host: smtpav01.dal12v.mail.ibm.com
+    port: 25
+    subject: Linux Check Update Packages - SREDSBRS1
+    to: "{{ email_address }}"
+    body: "See attached file {{ csv_file }}"
+    attach: "{{ role_path }}/files/{{ csv_file }}"
+
+- name: Remove csv file from localhost
+  run_once: true
+  delegate_to: localhost
+  become: false
+  file: 
+    path: "{{ role_path }}/files/{{ csv_file }}"
+    state: absent
